@@ -202,6 +202,7 @@ float	Xrot, Yrot;			// rotation angles in degrees
 float	TransXYZ[3];		// set by glui translation widgets
 char** 	SAMPLE_NAMES;
 int	NUM_SAMPLES;
+int	TOTAL_NODES;
 //
 // function prototypes:
 //
@@ -481,7 +482,13 @@ Display( void )
 
 	glDisable( GL_DEPTH_TEST );
 	glColor3f( 0., 1., 1. );
-	DoRasterString( 0., 1., 0., "Text That Moves" );
+
+	//make this Dynamic... build list of samples ( at some point )
+	float z;
+	for (int i = 0; i < NUM_SAMPLES; i++){
+		z = 2 * (i - 0.) / (NUM_SAMPLES - 0) - 1;
+		DoRasterString( 0., 0., z, SAMPLE_NAMES[i] );
+	}
 
 
 	// draw some gratuitous text that is fixed on the screen:
@@ -501,8 +508,10 @@ Display( void )
 	glMatrixMode( GL_MODELVIEW );
 	glLoadIdentity( );
 	glColor3f( 1., 1., 1. );
-	DoRasterString( 5., 5., 0., "Text That Doesn't" );
 
+	DoRasterString( 5., 11., 0., "X Axis: Log10(fpkm)" );
+	DoRasterString( 5., 6., 0., "Y Axis: Log10(CV)" );
+	DoRasterString( 5., 1., 0., "Z Axis: Sample Set" );
 
 	// swap the double-buffered framebuffers:
 
@@ -751,15 +760,13 @@ getSamples(int* argc, char** argv)
 	}
 	NUM_SAMPLES = *argc;
 	//allocate array
-	printf("num samples %i\n", NUM_SAMPLES);
-	SAMPLE_NAMES = (char**) malloc(sizeof(char)* NUM_SAMPLES - 2);
+	SAMPLE_NAMES = new char*[NUM_SAMPLES - 2];
 	for (int i = 1; i <= NUM_SAMPLES - 2; i++){
-		printf("getting samplenames %i\n", i);
-		SAMPLE_NAMES[i] = argv[i];
+		SAMPLE_NAMES[i-1] = argv[i];
 	}
-	//dies here segfault l 0 l
-	Nodes = (node *) malloc(sizeof(struct node) * atoi(argv[NUM_SAMPLES]));
-	printf("exiting\n");
+	//num samples
+	int lines = atoi(argv[NUM_SAMPLES-1]);
+	Nodes = new struct node[lines];
 	NUM_SAMPLES = NUM_SAMPLES - 2;
 	return;
 }
@@ -768,7 +775,7 @@ void
 BuildSamples()
 {
 	//could load data in parallel 
-	char buf[20];
+	char buf[30];
 	float loc_fpkm;
 	float loc_CV;
 	int tot_samples = 0;
@@ -776,16 +783,17 @@ BuildSamples()
 	float min_fpkm = 20000000;
 	float max_cv = -2000000;
 	float min_cv = 2000000;
-	printf("entering buildsample loop\n");
 	for (int i = 0; i < NUM_SAMPLES; i++){
-		FILE * fs = fopen(strcat(".sample/", SAMPLE_NAMES[i]), "r"); 
-		while(fgets(buf, 20, fs)){
-			printf("while reading %i\n", tot_samples);
-			loc_fpkm = atof(strtok(buf, ","));
-			loc_CV = atof(strtok(buf, "\n"));
-			
+		char dir[50] = ".samples/";
+		FILE *fs = fopen(strcat(dir, SAMPLE_NAMES[i]), "r");
+		if (fs == NULL){
+			perror(dir);
+		} 
+		while(fgets(buf, 30, fs) != NULL){
+			loc_fpkm = atof(strtok(buf, " "));
+			loc_CV = atof(strtok(NULL, "\n"));
 			loc_fpkm = log10(loc_fpkm);
-			loc_CV = log10(loc_fpkm);
+			loc_CV = log10(loc_CV);
 			if(loc_fpkm > max_fpkm)
 				max_fpkm = loc_fpkm;
 			if(loc_fpkm < min_fpkm)
@@ -798,7 +806,7 @@ BuildSamples()
 			Nodes[tot_samples].CV = loc_CV;
 			Nodes[tot_samples].sample = i;
 			tot_samples++;
-			
+			memset(buf, 0, sizeof(30));
 		}
 	}
 	for (int i = 0; i < tot_samples; i++){
@@ -806,7 +814,7 @@ BuildSamples()
 		Nodes[i].y = 2 * (Nodes[i].CV - min_cv) / (max_cv - min_cv) - 1;
 		Nodes[i].z = 2 * (Nodes[i].sample - 0.) / (NUM_SAMPLES - 0) - 1;
 	}
-
+	TOTAL_NODES = tot_samples;
 }
 
 // initialize the display lists that will not change:
@@ -827,8 +835,8 @@ InitLists( void )
 		glPointSize(POINTSIZE);
 		glBegin(GL_POINTS);
 			//static for now
-			glColor3f(1.,1.,0);	
-			for( int i = 0; i < NUM_SAMPLES; i++){
+			glColor3f(1.,1.,0);
+			for( int i = 0; i < TOTAL_NODES; i++){
 				glVertex3f(Nodes[i].x, Nodes[i].y, Nodes[i].z);
 			}
 		glEnd();

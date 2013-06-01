@@ -3,13 +3,17 @@ RCAPlot
 
 This RCAPlot plots the points in 3 dimensions, where fpkm is the x axis, CV is the y axis, and the sample name is the z axis.
 
-To build the plot, it requires data from the RPlotter tool. You can run this by executing RPlotter with the -3d argument. Once built, it will attempt to build the graphics visualization.
+To build the plot, it requires data from the RPlotter tool. You can run this by executing RPlotter with the -3d argument. Once the data is gathered in the file plot_data, call make all. It will build the binaries for the RCAPlot. Be sure that you have the required dependencies (See below)
 
-Once the visualization is built (compiled), you may execute it by calling ./plot
+You may execute the tool by calling ./plot.
 
-If you would like to use the data provided, you can build the sample files with ./data_build.py 
 
-Otherwise, call the function from the RPlotter tool.
+Example
+=========
+
+If you would like to use the data provided, you can build the sample files with ./data_build.py
+This sample includes about 8000 data points on 4 different samples. Red indicates a very poor standard deviation, and green indicates a very good standard deviation. 
+
 
 GL Dependencies
 ===============

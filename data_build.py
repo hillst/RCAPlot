@@ -43,6 +43,7 @@ for line in lines:
 			linespl = filter(None, linespl)
 			if not ("NA" in linespl[3]):
 				fpkmlookup[j-1]['CV'] = float(linespl[3])
+				fpkmlookup[j-1]['stddev'] = float(linespl[2])
 			else:
 				fpkmlookup[j-1]['CV'] = "DELETE"
 			j+=1
@@ -65,7 +66,7 @@ for vals in fpkmlookup:
 			#open new handle
 			fd = open('.samples/'+vals["samplename"], 'w')
 			fdtable[vals["samplename"]] = fd
-		fdtable[vals["samplename"]].write(str(vals["fpkm"]) + " " + str(vals["CV"]) + "\n")
+		fdtable[vals["samplename"]].write(str(vals["fpkm"]) + " " + str(vals["CV"]) + " " + str(vals["stddev"]) +"\n")
 for fd in fdtable:
 	fdtable[fd].close()
 

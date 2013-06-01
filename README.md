@@ -7,6 +7,9 @@ To build the plot, it requires data from the RPlotter tool. You can run this by 
 
 Once the visualization is built (compiled), you may execute it by calling ./plot
 
+If you would like to use the data provided, you can build the sample files with ./data_build.py 
+
+Otherwise, call the function from the RPlotter tool.
 
 GL Dependencies
 ===============

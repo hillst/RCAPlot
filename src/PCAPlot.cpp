@@ -194,6 +194,9 @@ float max_fpkm = -2000000;
 float min_fpkm = 20000000;
 float max_cv = -2000000;
 float min_cv = 2000000;
+#define RAW	1
+#define db	0
+const int MODE = 1;
 //
 // function prototypes:
 //
@@ -224,7 +227,8 @@ void	Axes( float );
 void	HsvRgb( float[3], float [3] );
 void 	getSamples(int *argc, char** argv);
 void	BuildSamples();
-const float	POINTSIZE = 1.;
+void	getBatch();
+const float	POINTSIZE = 2.;
 
 struct node{
 	float 	fpkm;
@@ -248,7 +252,9 @@ main( int argc, char *argv[ ] )
 {
 	// turn on the glut package:
 	// (do this before checking argc and argv since it might
-	getSamples(&argc, argv);	
+	if( MODE == db)
+		getSamples(&argc, argv);	
+	
 	glutInit( &argc, argv );
 
 
@@ -268,6 +274,7 @@ main( int argc, char *argv[ ] )
 	Reset( );
 
 
+	// 
 	// setup all the user interface stuff:
 	InitGlui( );
 
@@ -468,18 +475,31 @@ Display( void )
 
 
 	// draw the current object:
-	glCallList( LabelList );
-
-
-	glPointSize(POINTSIZE);
-	glBegin(GL_POINTS);
-		for( int i = 0; i < TOTAL_NODES; i++){
-			glColor3f(Nodes[i].rgb[0], Nodes[i].rgb[1], Nodes[i].rgb[2]);
-			glVertex3f(Nodes[i].x, Nodes[i].y, Nodes[i].z);
+	if (MODE == db){
+		glCallList( LabelList );
+		glPointSize(POINTSIZE);
+		glBegin(GL_POINTS);
+			for( int i = 0; i < TOTAL_NODES; i++){
+				glColor3f(Nodes[i].rgb[0], Nodes[i].rgb[1], Nodes[i].rgb[2]);
+				glVertex3f(Nodes[i].x, Nodes[i].y, Nodes[i].z);
+			}
+		glEnd();
+		float z;
+		for (int i = 0; i < NUM_SAMPLES; i++){
+			z = 2 * (i - 0.) / (NUM_SAMPLES - 0) - 1;
+			DoRasterString( 0., 0., z, SAMPLE_NAMES[i] );
 		}
-	glEnd();
 
+	}
+	if (MODE == RAW) {
+		glBegin(GL_POINTS);
+			for( int i = 0; i < TOTAL_NODES; i++){
+				glColor3f(1.,0.,0.);
+				glVertex3f(Nodes[i].x, Nodes[i].y, .5);
+			}
+		glEnd();
 
+	}
 
 	// draw some gratuitous text that just rotates on top of the scene:
 
@@ -487,11 +507,7 @@ Display( void )
 	glColor3f( 0., 1., 1. );
 
 	//make this Dynamic... build list of samples ( at some point )
-	float z;
-	for (int i = 0; i < NUM_SAMPLES; i++){
-		z = 2 * (i - 0.) / (NUM_SAMPLES - 0) - 1;
-		DoRasterString( 0., 0., z, SAMPLE_NAMES[i] );
-	}
+	
 
 
 	// draw some gratuitous text that is fixed on the screen:
@@ -789,7 +805,10 @@ InitGraphics( void )
 	glutTabletMotionFunc( NULL );
 	glutTabletButtonFunc( NULL );
 	glutMenuStateFunc( NULL );
-	BuildSamples();
+	if(MODE == db)
+		BuildSamples();
+	if(MODE == RAW)
+		getBatch();
 	//this breaks it for some reason. but we don't use it so whatever	
 
 	// DO NOT SET THE GLUT IDLE FUNCTION HERE !!
@@ -818,7 +837,30 @@ getSamples(int* argc, char** argv)
 	NUM_SAMPLES = NUM_SAMPLES - 2;
 	return;
 }
+void
+getBatch()
+{
+	Nodes = new struct node[81409];
+	FILE *fs = fopen("raw_data","r");
+	char buf[50];
+	TOTAL_NODES = 81409;			
+	float x,y;
 
+	for (int i = 0; i < 81409; i++){
+		if (fgets(buf,50,fs) == NULL){
+			break;
+	
+		}
+			
+		x = atof(strtok(buf, " "));	
+		y = atof(strtok(NULL, "\n"));
+		Nodes[i].x = 2 * (x - -2.5f) / (10. - -2.5f) - 1;
+		Nodes[i].y = 2 * (y - -2.5f) / (5.5 - -2.5f) - 1;
+		memset(buf,0,50);
+	}
+	
+	fclose(fs);	
+}
 void
 BuildSamples()
 {
@@ -859,9 +901,14 @@ BuildSamples()
 		}
 	}
 	for (int i = 0; i < tot_samples; i++){
-
-		Nodes[i].x = 2 * (Nodes[i].fpkm - min_fpkm) / (max_fpkm - min_fpkm) - 1;
-		Nodes[i].y = 2 * (Nodes[i].CV - min_cv) / (max_cv - min_cv) - 1;
+		max_fpkm *= 2;
+		min_fpkm *= 2;
+		max_cv *= 2;
+		min_cv *= 2;
+		//Nodes[i].x = 2 * (Nodes[i].fpkm - min_fpkm) / (max_fpkm - min_fpkm) - 1;
+		//Nodes[i].y = 2 * (Nodes[i].CV - min_cv) / (max_cv - min_cv) - 1;
+		Nodes[i].x = Nodes[i].fpkm;
+		Nodes[i].y = Nodes[i].CV;
 		Nodes[i].z = 2 * (Nodes[i].sample - 0.) / (NUM_SAMPLES - 0) - 1;
 		//probably unnecessary but needs own function for spinner
 
@@ -955,7 +1002,8 @@ InitLists( void )
 	glEndList( );
 
 	LabelList = glGenLists(1);
-	glNewList(LabelList, GL_COMPILE);
+	if (MODE == db){
+		glNewList(LabelList, GL_COMPILE);
 		//10 ticks with markers for our current place
 		float curx = 0.;
 		float cury = 0.;
@@ -981,8 +1029,8 @@ InitLists( void )
 			DoRasterString10( 2., cury, 0., bufy );
 
 		}
-	glEndList();
-
+		glEndList();
+	}
 
 	// create the axes:
 

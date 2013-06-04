@@ -2,6 +2,7 @@
 # This script transforms the cuff output taken from cummerbund into something we can use  (Our C program). 
 # 	Do not run this directly, it should be called when make is called.
 import os
+import math
 fd = open("plot_data");
 lines = fd.readlines();
 final_list = []
@@ -55,6 +56,12 @@ for line in lines:
 				cvlines = True
 		
 fpkmlookup = sorted(fpkmlookup, key=lambda k: k['samplename']) 
+fpkmlookup = sorted(fpkmlookup, key=lambda k: k['CV'])
+for line in fpkmlookup:
+	try:
+		print math.log10(line['CV']) + 1.2
+	except:
+		pass
 fdtable = {}
 try:
 	os.mkdir(".samples")

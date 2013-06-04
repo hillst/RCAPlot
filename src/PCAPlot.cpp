@@ -495,6 +495,7 @@ Display( void )
 		glBegin(GL_POINTS);
 			for( int i = 0; i < TOTAL_NODES; i++){
 				glColor3f(1.,0.,0.);
+				glVertex3f(Nodes[i].y , -1 *( Nodes[i].x + .5), .5);
 				glVertex3f(Nodes[i].x, Nodes[i].y, .5);
 			}
 		glEnd();
